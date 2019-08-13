@@ -31,5 +31,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec", "~> 3.0"
 
   spec.add_dependency "jekyll", "~> 3.8"
-  spec.add_dependency 'activesupport'
+  spec.add_dependency 'activesupport', '~> 5.2'
+  spec.add_dependency 'aws-sdk-s3', '~> 1.46'
 end

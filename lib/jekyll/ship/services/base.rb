@@ -51,8 +51,8 @@ module Jekyll
           end
 
           def validate_required_options!
-            all_present = self.class.required_options.all? { |opt_name| options.key? opt_name }
-            raise_missing_required_option unless all_present
+            missing_options = self.class.required_options.select { |opt_name| !options.key?(opt_name) }
+            raise_missing_required_options(missing_options) unless missing_options.count == 0
           end
 
           def validate_in_sync_with_remote!
@@ -85,12 +85,8 @@ module Jekyll
           ###
           # Error handling methods.
           ###
-          def raise_missing_option(option, example=nil)
-            msg = "Missing required option: '#{option}'." \
-                  "\n\n# add this to #{config_file_path}:" \
-                  "\npublish:" \
-                  "\n  #{option}: # #{example || "your value here"}\n\n"
-            raise msg
+          def raise_missing_required_options(options)
+            raise "Missing required option(s): #{Array(options).join(', ')}"
           end
 
           def raise_not_in_sync_with_origin_master(ahead, behind)

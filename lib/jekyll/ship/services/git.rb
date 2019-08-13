@@ -14,9 +14,6 @@ module Jekyll
           Dir.mktmpdir do |tmp_dir|
             run_command "git clone --branch #{options[:branch]} --single-branch -- #{options[:repository_url]} #{tmp_dir}"
             run_command build_command(destination: tmp_dir)
-
-            require "pry"; binding.pry
-
             Dir.chdir tmp_dir do
               logger.info "(within #{tmp_dir})"
               run_command "git add ."
