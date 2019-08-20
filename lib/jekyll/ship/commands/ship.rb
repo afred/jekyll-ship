@@ -1,14 +1,13 @@
 require 'active_support/core_ext/hash/keys'
+require 'jekyll/command'
 require 'jekyll/ship/services/github'
 require 'jekyll/ship/services/s3'
 require 'jekyll/ship/errors'
 
 module Jekyll
   module Commands
-    class Ship < Command
-
+    class Ship < Jekyll::Command
       class << self
-
         def init_with_program(prog)
           prog.command(:ship) do |c|
             c.syntax "ship <service> [options]"

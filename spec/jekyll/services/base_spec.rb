@@ -1,16 +1,15 @@
-RSpec.describe "Jekyll::Ship::Services::Base" do
+require 'jekyll/ship/services/base'
 
+RSpec.describe Jekyll::Ship::Services::Base do
   describe '#build_command' do
     context 'with no options specified' do
-      it 'returns basic jekyll build command' do
-        expect(subject.build_command).to eq 'bundle exec jekyll build'
-      end
+      subject { described_class.new.send(:build_command) }
+      it { is_expected.to eq 'bundle exec jekyll build' }
     end
 
     context 'with a destination passed in' do
-      it 'returns jekyll build command with destination specified' do
-        expect(subject.build_command(destination: 'foo')).to eq 'bundle exec jekyll build -d foo'
-      end
+      subject { described_class.new.send(:build_command, destination: 'foo') }
+      it { is_expected.to eq 'bundle exec jekyll build -d foo' }
     end
   end
 end
