@@ -1,5 +1,6 @@
 require 'jekyll/ship/abstract_methods'
 require 'active_support/core_ext/string/inflections'
+require 'yaml'
 
 module Jekyll
   module Ship
@@ -7,13 +8,16 @@ module Jekyll
       class Base
         include AbstractMethods
 
-        attr_reader :options, :logger
+        attr_reader :options, :logger, :config_file_paths
 
         abstract :process
         abstract :this_process_will
 
         def initialize(options={})
           @logger = options.delete(:logger) || Logger.new(STDOUT)
+          # Before merging options, pull out any config file paths specified
+          # in the 'config' options, as these will be needed to merge options.
+          @config_file_paths = options.fetch('config', ['./_config.yml'])
           @options = merge_options(options)
         end
 
@@ -25,10 +29,6 @@ module Jekyll
         end
 
         protected
-
-          ###
-          # COMMANDS
-          ###
 
           def run_command(command)
             logger.info "Running: #{command}"
@@ -119,26 +119,31 @@ module Jekyll
           # Delegated to class
           def required_options; self.class.required_options; end
           def default_options; self.class.default_options; end
-          def config_key; self.class.config_key; end
 
           # Merges options together in this order (latter overwriting former)
           # 1. The @default_options hash for the class.
-          # 2. Config file under 'ship' >> 'default'
-          # 3. Config file under 'ship' >> [config key for service]
+          # 2. Default config from YAML config files.
+          # 3. Service-specific config from YAML config files.
           # 4. Options that were passed in at runtime.
+          # @return [Hash] the fully merged hash of config options
           def merge_options(options)
-            default_options.merge(options_from_config.merge(options))
+            sources_of_options = [default_options] + config_from_files + [options]
+            sources_of_options.reduce({}) { |merged_result, next_options_hash| merged_result.merge(next_options_hash) }
           end
 
-          def options_from_config
-            config = YAML.load_file(config_file_path)
-            defaults_for_all = config.fetch('ship', {}).fetch('default', {})
-            defaults_for_service = config.fetch('ship', {}).fetch(config_key, {})
-            defaults_for_all.merge defaults_for_service
-          end
-
-          def config_file_path
-            File.expand_path('./_config.yml')
+          # For each config file path, parses the YAML and merges the default
+          # config with the service-specific config.
+          # @return [Array<Hash>] the parsed YAML from each config file path.
+          def config_from_files
+            config_file_paths.map do |path|
+              all_config = YAML.load_file(path)
+              ship_config_defaults = complete_config.fetch('ship', {}).fetch('default', {})
+              ship_config_for_service = complete_config.fetch('ship', {}).fetch(config_key, {})
+              ship_config_defaults.merge ship_config_for_service
+            rescue Errno::ENOENT
+              logger.warn "Config file '#{path}' not found, skipping."
+              nil
+            end.compact
           end
 
         class << self
@@ -156,8 +161,9 @@ module Jekyll
             @default_options.merge opts
           end
 
-          # Get/set
-          def config_key(config_key=nil)
+          # Returns the config key for service, which is the underscored class
+          # name of the extended class.
+          def config_key
             self.to_s.underscore.to_sym
           end
         end
